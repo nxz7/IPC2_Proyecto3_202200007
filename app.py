@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
+from XmlHandler import XMLHandler
 
 app = Flask(__name__)
 CORS(app)
@@ -31,6 +32,8 @@ def get_info_for_date(date_to_check):
         return users, user_counts, hashtags, hashtag_counts
     else:
         return set(), {}, set(), {}
+
+#----------------------------------- CARGAR EL XML DE BASE ----------------------------
 
 @app.route('/cargarXml', methods=['POST'])
 def cargar_xml():
@@ -61,29 +64,14 @@ def cargar_xml():
             else:
                 stored_data[fecha] = {'messages': [{'text': texto}], 'users': users, 'hashtags': hashtags}
 
-        # HACER EL DE SALIDA DE UNA
-        xml_output = ET.Element('MENSAJES_RECIBIDOS')
-        for date, data in stored_data.items():
-            tiempo = ET.SubElement(xml_output, 'TIEMPO')
-            fecha_element = ET.SubElement(tiempo, 'FECHA')
-            fecha_element.text = date
-            mensajes_recibidos = ET.SubElement(tiempo, 'MSJ_RECIBIDOS')
-            mensajes_recibidos.text = str(len(data['messages']))
-            usuarios_mencionados = ET.SubElement(tiempo, 'USR_MENCIONADOS')
-            usuarios_mencionados.text = str(len(data['users']))
-            hashtags_incluidos = ET.SubElement(tiempo, 'HASH_INCLUIDOS')
-            hashtags_incluidos.text = str(len(data['hashtags']))
-
-        xmlstr = xml.dom.minidom.parseString(ET.tostring(xml_output)).toprettyxml(indent="    ")
-        with open("resumenMensajes.xml", "w") as f:
-            f.write(xmlstr)
+        XMLHandler.generate_xml(stored_data)
 
         return jsonify({'message': 'XML CARGADO Y ANALIZADO CON EXITO >>> resumen de mensajes creado.'}), 200
     except Exception as e:
         return jsonify({'error': f'Error procesando el XML: {str(e)}'}), 500
 
 
-#---------- USUARIOS
+#-------------------------------------- USUARIOS ------------------------------------------
 @app.route('/devolverUsuarios', methods=['GET'])
 def devolver_usuarios():
     date_to_check = request.args.get('date')
@@ -98,7 +86,7 @@ def devolver_usuarios():
         return jsonify({'message': f'No hay users mencionados: {date_to_check}.'}), 404
 
 
-#----------HASHTAGS
+#-------------------------------------- HASHTAGS ------------------------------------------
 @app.route('/devolverHashtags', methods=['GET'])
 def devolver_hashtags():
     date_to_check = request.args.get('date')
@@ -111,6 +99,63 @@ def devolver_hashtags():
         return jsonify({'hashtags': list(hashtags), 'hashtag_cuenta': hashtag_counts}), 200
     else:
         return jsonify({'message': f'No hay hashtags mencionados: {date_to_check}.'}), 404
+
+#---------------------------- DICCIONARIO POS/NEG ------------------------------------------
+pos = []
+neg = []
+
+@app.route('/almacenarInfoXml', methods=['POST'])
+def almacenar_info_xml():
+    data = request.get_json()
+    if 'xml' not in data:
+        return jsonify({'error': 'FORMATO INVALIDO >>  Expected JSON object with "xml" field.'}), 400
+    try:
+        xml_string = base64.b64decode(data['xml']).decode('utf-8')
+        xml_root = ET.fromstring(xml_string)
+
+        global pos, neg
+
+        for word in xml_root.find('sentimientos_positivos'):
+            pos.append(word.text.strip())
+        
+        for word in xml_root.find('sentimientos_negativos'):
+            neg.append(word.text.strip())
+
+        return jsonify({'positivas': pos, 'negativas': neg}), 200
+    except Exception as e:
+        return jsonify({'error': f'Error procesando el XML: {str(e)}'}), 500
+
+#--------------------------- clasificar mensajes positivo/negativo -------------------------
+@app.route('/clasificarMensajes', methods=['GET'])
+def clasificar_mensajes():
+    date_to_check = request.args.get('date')
+    if not date_to_check:
+        return jsonify({'error': 'No selecciono fecha.'}), 400
+
+    if date_to_check not in stored_data:
+        return jsonify({'message': f'No hay mensajes para la fecha: {date_to_check}.'}), 404
+
+    cuenta_positivos = 0
+    cuenta_neg = 0
+    cuenta_neutral = 0
+
+    global pos, neg
+
+    for message_data in stored_data[date_to_check]['messages']:
+        message_text = message_data['text']
+        cuenta_palabras_positivos = sum(message_text.count(word) for word in pos)
+        cuenta_palabras_neg = sum(message_text.count(word) for word in neg)
+#CLASIFICACION >>>>>>>>
+        if cuenta_palabras_positivos > cuenta_palabras_neg:
+            cuenta_positivos += 1
+        elif cuenta_palabras_neg > cuenta_palabras_positivos:
+            cuenta_neg += 1
+        else:
+            cuenta_neutral += 1
+
+    return jsonify({'mensajes_positivos': cuenta_positivos, 'mensajes_negativos': cuenta_neg, 'mensajes_neutros': cuenta_neutral}), 200
+
+
 
 if __name__ == '__main__':
     app.run(threaded=True, port=5000, debug=True)

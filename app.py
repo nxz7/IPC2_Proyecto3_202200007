@@ -157,6 +157,15 @@ def clasificar_mensajes():
 
     return jsonify({'mensajes_positivos': cuenta_positivos, 'mensajes_negativos': cuenta_neg, 'mensajes_neutros': cuenta_neutral}), 200
 
+#-------------------------------------------------
+@app.route('/clearData', methods=['POST'])
+def clear_data():
+    global stored_data, pos, neg
+    stored_data = {}
+    pos = []
+    neg = []
+    print(stored_data)
+    return jsonify({'message': 'Data cleared successfully.'}), 200
 
 
 if __name__ == '__main__':

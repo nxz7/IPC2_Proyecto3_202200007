@@ -5,6 +5,8 @@
     <palabra> excelente </palabra>
     <palabra> cool </palabra>
     <palabra> satisfecho </palabra>
+    <palabra> feliz </palabra>
+    <palabra> encantado </palabra>
     </sentimientos_positivos>
     <sentimientos_negativos>
     <palabra> malo </palabra>
@@ -13,5 +15,7 @@
     <palabra> molesto </palabra>
     <palabra> decepcionado </palabra>
     <palabra> enojo </palabra>
+    <palabra> horrible</palabra>
+    <palabra> feliz </palabra>
     </sentimientos_negativos>
 </diccionario>

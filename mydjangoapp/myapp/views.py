@@ -97,3 +97,15 @@ def classify_messages_view(request):
             return HttpResponse(str(e), status=500)
 
     return render(request, 'myform.html')
+
+def clear_data_view(request):
+    if request.method == 'POST':
+        try:
+            response = requests.post('http://127.0.0.1:5000/clearData')
+            response.raise_for_status()
+            response_data = response.json()
+            return JsonResponse(response_data)
+        except requests.exceptions.RequestException as e:
+            return HttpResponse(str(e), status=500)
+
+    return render(request, 'myform.html')

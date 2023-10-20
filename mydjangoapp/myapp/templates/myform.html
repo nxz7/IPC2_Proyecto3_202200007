@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>202200007</title>
+    <style>
+        body {
+            background-color: #252B48;
+            color: #a2abd7;
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #ffffff;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .flex-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .flex-container form {
+            margin: 10px;
+        }
+        .flex-container textarea, input[type="text"] {
+            margin: 10px;
+        }
+        .flex-container button {
+            margin: 10px;
+        }
+        input[type="text"], input[type="file"] {
+            padding: 8px;
+            border: 1px solid #BCA37F;
+            border-radius: 5px;
+            width: 300px;
+        }
+        button {
+            background-color: #F1B4BB;
+            color: rgb(60, 25, 25);
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 150px;
+        }
+        button:hover {
+            background-color: #132043;
+        }
+        textarea {
+            padding: 8px;
+            border: 1px solid #5B9A8B;
+            border-radius: 5px;
+            width: 300px;
+            height: 200px;
+            resize: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Proyecto 3 </h1>
+
+    <div class="flex-container">
+        <form method="POST" id="myForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="fileInput" name="file" accept=".xml" />
+            <button type="button" id="submitButton">Cargar tuits</button>
+        </form>
+
+        <form method="POST" id="myForm2" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="fileInput2" name="xml" accept=".xml" />
+            <button type="button" id="submitButton2">Cargar diccionario</button>
+        </form>
+        <textarea id="resultTextArea" rows="10" cols="50" readonly></textarea>
+    </div>
+
+    <div class="flex-container">
+        <form id="getUserForm">
+            <input type="text" id="dateInput" placeholder="Enter date (MM/DD/YYYY)" />
+            <button type="button" id="getUserButton">Get Users</button>
+        </form>
+
+        <textarea id="userTextArea" readonly></textarea>
+    </div>
+
+    <div class="flex-container">
+        <form id="getHashtagsForm">
+            <input type="text" id="dateInput2" placeholder="Enter date (MM/DD/YYYY)" />
+            <button type="button" id="getHashtagsButton">Get Hashtags</button>
+        </form>
+
+        <textarea id="hashtagsTextArea" readonly></textarea>
+    </div>
+
+    <div class="flex-container">
+        <form id="classifyMessagesForm">
+            <input type="text" id="dateInput3" placeholder="Enter date (MM/DD/YYYY)" />
+            <button type="button" id="classifyMessagesButton">Classify Messages</button>
+        </form>
+
+        <textarea id="messageClassificationTextArea" readonly></textarea>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#submitButton").click(function(e) {
+                e.preventDefault();
+                var form = new FormData();
+                form.append('data', $("#inputData").val());
+                form.append('file', $("#fileInput")[0].files[0]);
+                var csrfToken = $("input[name='csrfmiddlewaretoken']").val();
+                form.append('csrfmiddlewaretoken', csrfToken);
+
+                $.ajax({
+                    type: "POST",
+                    url: "",
+                    data: form,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $("#response").html(response.message);
+                    },
+                    error: function(xhr, status, error) {
+                        $("#response").html("Error: " + error);
+                    }
+                });
+            });
+
+            $("#submitButton2").click(function(e) {
+                e.preventDefault();
+                var form = new FormData();
+                form.append('xml', $("#fileInput2")[0].files[0]);
+                var csrfToken = $("input[name='csrfmiddlewaretoken']").val();
+                form.append('csrfmiddlewaretoken', csrfToken);
+
+                $.ajax({
+                    type: "POST",
+                    url: "{% url 'myform2' %}",
+                    data: form,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        var resultText = "Diccionario cargado: Positivas - " + response.positivas + ", Negativas - " + response.negativas;
+                        $("#response").html(resultText);
+                        $("#resultTextArea").val(JSON.stringify(response, null, 2)); // Display JSON in text area
+                    },
+                    error: function(xhr, status, error) {
+                        $("#response").html("Error: " + error);
+                    }
+                });
+            });
+
+
+            $("#getUserButton").click(function(e) {
+                e.preventDefault();
+                var date = $("#dateInput").val();
+                $.ajax({
+                    type: "GET",
+                    url: "{% url 'get_users' %}",
+                    data: {
+                        date: date
+                    },
+                    success: function(response) {
+                        $("#userTextArea").val(JSON.stringify(response, null, 2)); // Display JSON in text area
+                    },
+                    error: function(xhr, status, error) {
+                        $("#userTextArea").val("Error: " + error);
+                    }
+                });
+            });
+
+            $("#getHashtagsButton").click(function(e) {
+                e.preventDefault();
+                var date = $("#dateInput2").val();
+                $.ajax({
+                    type: "GET",
+                    url: "{% url 'get_hashtags' %}",
+                    data: {
+                        date: date
+                    },
+                    success: function(response) {
+                        $("#hashtagsTextArea").val(JSON.stringify(response, null, 2)); // Display JSON in text area
+                    },
+                    error: function(xhr, status, error) {
+                        $("#hashtagsTextArea").val("Error: " + error);
+                    }
+                });
+            });
+
+            $("#classifyMessagesButton").click(function(e) {
+                e.preventDefault();
+                var date = $("#dateInput3").val();
+                $.ajax({
+                    type: "GET",
+                    url: "{% url 'classify_messages' %}",
+                    data: {
+                        date: date
+                    },
+                    success: function(response) {
+                        $("#messageClassificationTextArea").val(JSON.stringify(response, null, 2)); 
+                    },
+                    error: function(xhr, status, error) {
+                        $("#messageClassificationTextArea").val("Error: " + error);
+                    }
+                });
+            });
+        });
+    </script>
+    
+</body>
+</html>

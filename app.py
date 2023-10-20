@@ -37,11 +37,11 @@ def get_info_for_date(date_to_check):
 
 @app.route('/cargarXml', methods=['POST'])
 def cargar_xml():
-    data = request.get_json()
-    if 'xml' not in data:
-        return jsonify({'error': 'FORMATO INVALIDO >>  Expected JSON object with "xml" field.'}), 400
+    if 'file' not in request.files:
+        return jsonify({'error': 'FORMATO INVALIDO >>  Expected XML file.'}), 400
     try:
-        xml_string = base64.b64decode(data['xml']).decode('utf-8')
+        xml_file = request.files['file']
+        xml_string = xml_file.read().decode('utf-8')
         xml_root = ET.fromstring(xml_string)
         global stored_data
         stored_data = {}
@@ -63,7 +63,7 @@ def cargar_xml():
                 stored_data[fecha]['hashtags'] |= hashtags
             else:
                 stored_data[fecha] = {'messages': [{'text': texto}], 'users': users, 'hashtags': hashtags}
-
+        print(xml_string)
         XMLHandler.generate_xml(stored_data)
 
         return jsonify({'message': 'XML CARGADO Y ANALIZADO CON EXITO >>> resumen de mensajes creado.'}), 200
@@ -106,11 +106,12 @@ neg = []
 
 @app.route('/almacenarInfoXml', methods=['POST'])
 def almacenar_info_xml():
-    data = request.get_json()
-    if 'xml' not in data:
-        return jsonify({'error': 'FORMATO INVALIDO >>  Expected JSON object with "xml" field.'}), 400
+    if 'xml' not in request.files:
+        return jsonify({'error': 'FORMATO INVALIDO >>  No file part in the request.'}), 400
+
     try:
-        xml_string = base64.b64decode(data['xml']).decode('utf-8')
+        xml_file = request.files['xml']
+        xml_string = xml_file.read().decode('utf-8')
         xml_root = ET.fromstring(xml_string)
 
         global pos, neg
@@ -120,7 +121,8 @@ def almacenar_info_xml():
         
         for word in xml_root.find('sentimientos_negativos'):
             neg.append(word.text.strip())
-
+        print("diccionario cargado")
+        XMLHandler.generate_configxml(pos, neg)
         return jsonify({'positivas': pos, 'negativas': neg}), 200
     except Exception as e:
         return jsonify({'error': f'Error procesando el XML: {str(e)}'}), 500

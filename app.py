@@ -1,5 +1,5 @@
 import base64
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
@@ -65,6 +65,13 @@ def cargar_xml():
                 stored_data[fecha] = {'messages': [{'text': texto}], 'users': users, 'hashtags': hashtags}
         print(xml_string)
         XMLHandler.generate_xml(stored_data)
+#--------------------base de datos----------
+        with open('db.xml', 'w') as f:
+            f.write(xml_string)
+
+        return send_file('db.xml', as_attachment=True, attachment_filename='db.xml', mimetype='application/xml')
+
+#-----------------------------------
 
         return jsonify({'message': 'XML CARGADO Y ANALIZADO CON EXITO >>> resumen de mensajes creado.'}), 200
     except Exception as e:
